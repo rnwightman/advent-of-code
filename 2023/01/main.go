@@ -5,8 +5,28 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"unicode"
 )
+
+var lookup map[string]int
+
+func init() {
+	lookup = make(map[string]int)
+
+	lookup["one"] = 1
+	lookup["two"] = 2
+	lookup["three"] = 3
+	lookup["four"] = 4
+	lookup["five"] = 5
+	lookup["six"] = 6
+	lookup["seven"] = 7
+	lookup["eight"] = 8
+	lookup["nine"] = 9
+
+	for i := range [10]int{} {
+		word := fmt.Sprint(i)
+		lookup[word] = i
+	}
+}
 
 func main() {
 	result := 0
@@ -27,17 +47,25 @@ func main() {
 }
 
 func parseValue(s string) int {
+	fmt.Fprintln(os.Stderr, "Parsing Line:", s)
 	var digits []int
-	for _, value := range s {
-		digit := 0
-		if unicode.IsDigit(value) {
-			digit = int(value - '0')
+
+	i := 0
+	for i < len(s) {
+		j := i + 1
+		for j <= len(s) {
+			word := s[i:j]
+			if v, ok := lookup[word]; ok {
+				digits = append(digits, v)
+				break
+			}
+			j = j + 1
 		}
 
-		if digit > 0 {
-			digits = append(digits, digit)
-		}
+		i = i + 1
 	}
+
+	fmt.Fprintln(os.Stderr, "Identified digits:", digits)
 
 	d1 := digits[0]
 	d2 := digits[len(digits)-1]
