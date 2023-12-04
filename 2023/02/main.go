@@ -8,25 +8,21 @@ import (
 	"strings"
 )
 
-const (
-	Red   = 12
-	Green = 13
-	Blue  = 14
-)
-
 type Game struct {
 	ID           int
 	RevealedSets []CubeSet
 }
 
-func (g Game) IsPossible() bool {
+func (g Game) MinimumSet() CubeSet {
+	result := CubeSet{}
+
 	for _, s := range g.RevealedSets {
-		if Red < s.Red || Green < s.Green || Blue < s.Blue {
-			return false
-		}
+		result.Red = max(result.Red, s.Red)
+		result.Blue = max(result.Blue, s.Blue)
+		result.Green = max(result.Green, s.Green)
 	}
 
-	return true
+	return result
 }
 
 type CubeSet struct {
@@ -35,20 +31,19 @@ type CubeSet struct {
 	Blue  int
 }
 
+func (cs *CubeSet) Power() int {
+	return max(1, cs.Red) * max(1, cs.Green) * max(1, cs.Blue)
+}
+
 func main() {
 	games := parseGames(os.Stdin)
 
-	possibleGames := []Game{}
-	for _, g := range games {
-		possible := g.IsPossible()
-		if possible {
-			possibleGames = append(possibleGames, g)
-		}
-	}
-
 	sum := 0
-	for _, g := range possibleGames {
-		sum = sum + g.ID
+	for _, g := range games {
+		minSet := g.MinimumSet()
+		power := minSet.Power()
+
+		sum += power
 	}
 
 	fmt.Fprintln(os.Stdout, sum)
