@@ -43,34 +43,27 @@ func main() {
 		fmt.Fprintln(os.Stderr, "reading standard input:", err)
 	}
 
-	fmt.Fprintln(os.Stdout, "Sum of Calibration Values: ", result)
+	fmt.Fprintln(os.Stdout, result)
 }
 
 func parseValue(s string) int {
-	fmt.Fprintln(os.Stderr, "Parsing Line:", s)
 	var digits []int
-
-	i := 0
-	for i < len(s) {
-		j := i + 1
-		for j <= len(s) {
+	for i := 0; i < len(s); i++ {
+		for j := i + 1; j <= len(s); j++ {
 			word := s[i:j]
 			if v, ok := lookup[word]; ok {
 				digits = append(digits, v)
 				break
 			}
-			j = j + 1
 		}
-
-		i = i + 1
 	}
-
-	fmt.Fprintln(os.Stderr, "Identified digits:", digits)
 
 	d1 := digits[0]
 	d2 := digits[len(digits)-1]
 
 	value, _ := strconv.Atoi(fmt.Sprintf("%d%d", d1, d2))
+
+	fmt.Fprintln(os.Stderr, s, digits, value)
 
 	return value
 }
