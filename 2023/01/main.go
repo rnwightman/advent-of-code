@@ -27,18 +27,22 @@ func main() {
 }
 
 func parseValue(s string) int {
-	digits := ""
+	var digits []int
 	for _, value := range s {
+		digit := 0
 		if unicode.IsDigit(value) {
-			digits = fmt.Sprintf("%s%c", digits, value)
+			digit = int(value - '0')
+		}
+
+		if digit > 0 {
+			digits = append(digits, digit)
 		}
 	}
 
 	d1 := digits[0]
 	d2 := digits[len(digits)-1]
 
-	digits = fmt.Sprintf("%c%c", d1, d2)
+	value, _ := strconv.Atoi(fmt.Sprintf("%d%d", d1, d2))
 
-	value, _ := strconv.Atoi(digits)
 	return value
 }
