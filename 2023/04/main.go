@@ -12,22 +12,23 @@ import (
 
 type Card struct {
 	Label          string
+	Copies         uint
 	WinningNumbers []uint
 	Numbers        []uint
 }
 
-func (c Card) Score() uint {
-	var pts uint
+func (c Card) NumberOfMatches() int {
+	var count int
 	for _, n := range c.Numbers {
 		ok := slices.Contains(c.WinningNumbers, n)
 		if !ok {
 			continue
 		}
 
-		pts = max(1, pts*2)
+		count += 1
 	}
 
-	return pts
+	return count
 }
 
 func parseCard(s string) Card {
@@ -36,6 +37,7 @@ func parseCard(s string) Card {
 
 	return Card{
 		Label:          label,
+		Copies:         1,
 		WinningNumbers: parseNumbers(sWinning),
 		Numbers:        parseNumbers(sNumbers),
 	}
@@ -59,11 +61,16 @@ func main() {
 
 	cards := readCards(os.Stdin)
 
-	for _, card := range cards {
-		points := card.Score()
-		fmt.Fprintln(os.Stdout, card, points)
+	for i := range cards {
+		card := cards[i]
+		n := card.NumberOfMatches()
+		fmt.Fprintf(os.Stderr, "%v has %d matches\n", card, n)
 
-		sum += points
+		for j := i + 1; j <= i+n; j++ {
+			cards[j].Copies += card.Copies
+		}
+
+		sum += card.Copies
 	}
 
 	fmt.Fprintln(os.Stdout, sum)
