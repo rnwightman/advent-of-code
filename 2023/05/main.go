@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -10,7 +11,7 @@ import (
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
-	seeds := readSeeds(reader)
+	seeds, seedCount := readSeeds(reader)
 	seedToSoil := readMap(reader)
 	soilToFertilizer := readMap(reader)
 	fertilizerToWater := readMap(reader)
@@ -21,31 +22,34 @@ func main() {
 
 	fmt.Fprintln(os.Stderr, "parsed input")
 
-	locations := []int{}
-	for _, seed := range seeds {
-		soil := seedToSoil.Lookup(seed)
-		fertilizer := soilToFertilizer.Lookup(soil)
-		water := fertilizerToWater.Lookup(fertilizer)
-		light := waterToLight.Lookup(water)
-		temp := lightToTemperature.Lookup(light)
-		humidity := temperatureToHumidity.Lookup(temp)
-		location := humidityToLocation.Lookup(humidity)
+	seedsProcessed := 0
+	nearestLocation := math.MaxInt
+	fmt.Fprintln(os.Stdout, "Seed Ranges", len(seeds))
 
-		locations = append(locations, location)
+	for _, r := range seeds {
+		for i := 0; i < r.Length; i++ {
+			seed := r.Start + i
+
+			soil := seedToSoil.Lookup(seed)
+			fertilizer := soilToFertilizer.Lookup(soil)
+			water := fertilizerToWater.Lookup(fertilizer)
+			light := waterToLight.Lookup(water)
+			temp := lightToTemperature.Lookup(light)
+			humidity := temperatureToHumidity.Lookup(temp)
+			location := humidityToLocation.Lookup(humidity)
+
+			nearestLocation = min(nearestLocation, location)
+		}
+
+		seedsProcessed += r.Length
+		percentComplete := int(100 * float64(seedsProcessed) / float64(seedCount))
+		fmt.Fprintf(os.Stderr, "progress %d of %d: %d\n", seedsProcessed, seedCount, percentComplete)
 	}
 
-	fmt.Fprintln(os.Stderr, "resolved locations")
-	fmt.Fprintln(os.Stderr, locations)
-
-	closest := locations[0]
-	for _, location := range locations {
-		closest = min(closest, location)
-	}
-
-	fmt.Fprintln(os.Stdout, closest)
+	fmt.Fprintln(os.Stdout, nearestLocation)
 }
 
-func readSeeds(reader *bufio.Reader) []int {
+func readSeeds(reader *bufio.Reader) ([]Range, int) {
 	line, err := Readln(reader)
 	if err != nil {
 		panic(err)
@@ -56,20 +60,33 @@ func readSeeds(reader *bufio.Reader) []int {
 		panic("Missing seeds section")
 	}
 
-	seedCategories := []int{}
+	numbers := []int{}
 	for _, r := range strings.Split(rSeeds, " ") {
-		sc, err := strconv.Atoi(r)
+		n, err := strconv.Atoi(r)
 		if err != nil {
 			panic(err)
 		}
 
-		seedCategories = append(seedCategories, sc)
+		numbers = append(numbers, n)
 	}
-
 	// consume blank link
 	Readln(reader)
 
-	return seedCategories
+	seedCount := 0
+
+	seedCategories := make([]Range, len(numbers)/2)
+	for i := 0; i < len(numbers); i += 2 {
+		baseCategory := numbers[i]
+		length := numbers[i+1]
+
+		seedCategories[i/2] = Range{
+			Start:  baseCategory,
+			Length: length,
+		}
+		seedCount += length
+	}
+
+	return seedCategories, seedCount
 }
 
 func readMap(reader *bufio.Reader) Mapping {
@@ -122,6 +139,11 @@ func Readln(r *bufio.Reader) (string, error) {
 		ln = append(ln, line...)
 	}
 	return string(ln), err
+}
+
+type Range struct {
+	Start  int
+	Length int
 }
 
 type Mapping struct {
