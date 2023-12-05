@@ -11,7 +11,7 @@ import (
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
-	seeds, seedCount := readSeeds(reader)
+	seeds, _ := readSeeds(reader)
 	seedToSoil := readMap(reader)
 	soilToFertilizer := readMap(reader)
 	fertilizerToWater := readMap(reader)
@@ -20,30 +20,40 @@ func main() {
 	temperatureToHumidity := readMap(reader)
 	humidityToLocation := readMap(reader)
 
-	fmt.Fprintln(os.Stderr, "parsed input")
-
-	seedsProcessed := 0
-	nearestLocation := math.MaxInt
-	fmt.Fprintln(os.Stdout, "Seed Ranges", len(seeds))
-
+	ch := make(chan int)
 	for _, r := range seeds {
-		for i := 0; i < r.Length; i++ {
-			seed := r.Start + i
+		go func(r Range) {
 
-			soil := seedToSoil.Lookup(seed)
-			fertilizer := soilToFertilizer.Lookup(soil)
-			water := fertilizerToWater.Lookup(fertilizer)
-			light := waterToLight.Lookup(water)
-			temp := lightToTemperature.Lookup(light)
-			humidity := temperatureToHumidity.Lookup(temp)
-			location := humidityToLocation.Lookup(humidity)
+			nearestSeedLocation := math.MaxInt
+			for i := 0; i < r.Length; i++ {
+				seed := r.Start + i
 
-			nearestLocation = min(nearestLocation, location)
-		}
+				soil := seedToSoil.Lookup(seed)
+				fertilizer := soilToFertilizer.Lookup(soil)
+				water := fertilizerToWater.Lookup(fertilizer)
+				light := waterToLight.Lookup(water)
+				temp := lightToTemperature.Lookup(light)
+				humidity := temperatureToHumidity.Lookup(temp)
+				location := humidityToLocation.Lookup(humidity)
 
-		seedsProcessed += r.Length
-		percentComplete := int(100 * float64(seedsProcessed) / float64(seedCount))
-		fmt.Fprintf(os.Stderr, "progress %d of %d: %d\n", seedsProcessed, seedCount, percentComplete)
+				nearestSeedLocation = min(nearestSeedLocation, location)
+			}
+
+			ch <- nearestSeedLocation
+		}(r)
+	}
+
+	fmt.Fprintf(os.Stderr, "Processing %d...\n", len(seeds))
+
+	nearestLocation := math.MaxInt
+	seedsProcessed := 0
+	for range seeds {
+		location := <-ch
+
+		nearestLocation = min(nearestLocation, location)
+		seedsProcessed += 1
+
+		fmt.Fprintf(os.Stderr, "Completed %d / %d\n", seedsProcessed, len(seeds))
 	}
 
 	fmt.Fprintln(os.Stdout, nearestLocation)
