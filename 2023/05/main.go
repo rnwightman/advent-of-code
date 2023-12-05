@@ -19,16 +19,7 @@ func main() {
 	temperatureToHumidity := readMap(reader)
 	humidityToLocation := readMap(reader)
 
-	/*
-		fmt.Fprintln(os.Stderr, "seeds", seeds)
-		fmt.Fprintln(os.Stderr, seedToSoil)
-		fmt.Fprintln(os.Stderr, soilToFertilizer)
-		fmt.Fprintln(os.Stderr, fertilizerToWater)
-		fmt.Fprintln(os.Stderr, waterToLight)
-		fmt.Fprintln(os.Stderr, lightToTemperature)
-		fmt.Fprintln(os.Stderr, temperatureToHumidity)
-		fmt.Fprintln(os.Stderr, humidityToLocation)
-	*/
+	fmt.Fprintln(os.Stderr, "parsed input")
 
 	locations := []int{}
 	for _, seed := range seeds {
@@ -43,12 +34,14 @@ func main() {
 		locations = append(locations, location)
 	}
 
+	fmt.Fprintln(os.Stderr, "resolved locations")
+	fmt.Fprintln(os.Stderr, locations)
+
 	closest := locations[0]
 	for _, location := range locations {
 		closest = min(closest, location)
 	}
 
-	fmt.Fprintln(os.Stderr, "locations", locations)
 	fmt.Fprintln(os.Stdout, closest)
 }
 
