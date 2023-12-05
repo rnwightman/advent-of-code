@@ -45,17 +45,39 @@ func main() {
 }
 
 var numberRegex = regexp.MustCompile(`\d+`)
+var symbolRegex = regexp.MustCompile(`[^\.\d]`)
 
 func identifyPartNumbers(line, prevLine, nextLine string) []int {
 	partNumbers := []int{}
 
 	indexOfNumbers := numberRegex.FindAllIndex([]byte(line), -1)
 	for _, indices := range indexOfNumbers {
-		partNumber, _ := strconv.Atoi(line[indices[0]:indices[1]])
-		partNumbers = append(partNumbers, partNumber)
+		sIndex := indices[0]
+		eIndex := indices[1]
+
+		ok := false
+		ok = ok || hasSymbol(prevLine, sIndex, eIndex)
+		ok = ok || hasSymbol(line, sIndex, eIndex)
+		ok = ok || hasSymbol(nextLine, sIndex, eIndex)
+
+		if ok {
+			rPartNumber := line[sIndex:eIndex]
+			partNumber, _ := strconv.Atoi(rPartNumber)
+			partNumbers = append(partNumbers, partNumber)
+
+		}
 	}
 
 	return partNumbers
+}
+
+func hasSymbol(s string, i, j int) bool {
+	if s == "" {
+		return false
+	}
+
+	substring := s[max(0, i-1):min(len(s), j+1)]
+	return symbolRegex.Match([]byte(substring))
 }
 
 func readLines(f *os.File) []string {
