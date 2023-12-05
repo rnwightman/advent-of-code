@@ -8,12 +8,55 @@ import (
 	"strconv"
 )
 
+type PartNumber struct {
+	Value      int
+	StartIndex int
+	EndIndex   int
+}
+
+type Gear struct {
+	Index int
+}
+
+type Line struct {
+	PartNumbers []PartNumber
+	Gears       []Gear
+}
+
+func (l *Line) FindPartsIntersecting(index int) []PartNumber {
+	matches := []PartNumber{}
+
+	for _, pn := range l.PartNumbers {
+		ok := pn.Intersects(index-1) || pn.Intersects(index) || pn.Intersects(index+1)
+		if ok {
+			matches = append(matches, pn)
+		}
+	}
+
+	return matches
+}
+
+func (pn *PartNumber) Intersects(index int) bool {
+	return index >= pn.StartIndex && index < pn.EndIndex
+}
+
+func ParsePartNumber(s string, start, end int) PartNumber {
+	ss := s[start:end]
+	value, _ := strconv.Atoi(ss)
+
+	return PartNumber{
+		Value:      value,
+		StartIndex: start,
+		EndIndex:   end,
+	}
+}
+
 func main() {
-	partNumbers := []int{}
+	sum := 0
 
 	lines := readLines(os.Stdin)
 	for lineIndex := range lines {
-		var pLine, nLine string
+		var pLine, nLine Line
 		if lineIndex-1 >= 0 {
 			pLine = lines[lineIndex-1]
 		}
@@ -23,72 +66,73 @@ func main() {
 
 		line := lines[lineIndex]
 
-		partNumbersInLine := identifyPartNumbers(line, pLine, nLine)
+		ratios := identifyGearRatios(line, pLine, nLine)
 
 		fmt.Fprintln(os.Stderr, " ", pLine)
 		fmt.Fprintln(os.Stderr, ">", line)
 		fmt.Fprintln(os.Stderr, " ", nLine)
-		fmt.Fprintln(os.Stderr, "#", partNumbersInLine)
+		fmt.Fprintln(os.Stderr, "#", ratios)
 		fmt.Fprintln(os.Stderr)
 
-		for _, partNumber := range partNumbersInLine {
-			partNumbers = append(partNumbers, partNumber)
+		for _, ratio := range ratios {
+			sum += ratio
 		}
-	}
-
-	sum := 0
-	for _, partNumber := range partNumbers {
-		sum = sum + partNumber
 	}
 
 	fmt.Fprintln(os.Stdout, sum)
 }
 
-var numberRegex = regexp.MustCompile(`\d+`)
-var symbolRegex = regexp.MustCompile(`[^\.\d]`)
+func identifyGearRatios(line, pLine, nLine Line) []int {
+	ratios := []int{}
 
-func identifyPartNumbers(line, prevLine, nextLine string) []int {
-	partNumbers := []int{}
+	for _, gear := range line.Gears {
+		adjParts := []PartNumber{}
 
-	indexOfNumbers := numberRegex.FindAllIndex([]byte(line), -1)
-	for _, indices := range indexOfNumbers {
-		sIndex := indices[0]
-		eIndex := indices[1]
+		adjParts = append(adjParts, pLine.FindPartsIntersecting(gear.Index)...)
+		adjParts = append(adjParts, line.FindPartsIntersecting(gear.Index)...)
+		adjParts = append(adjParts, nLine.FindPartsIntersecting(gear.Index)...)
 
-		ok := false
-		ok = ok || hasSymbol(prevLine, sIndex, eIndex)
-		ok = ok || hasSymbol(line, sIndex, eIndex)
-		ok = ok || hasSymbol(nextLine, sIndex, eIndex)
+		fmt.Fprintln(os.Stderr, "Adjacent part-numbers", adjParts)
 
-		if ok {
-			rPartNumber := line[sIndex:eIndex]
-			partNumber, _ := strconv.Atoi(rPartNumber)
-			partNumbers = append(partNumbers, partNumber)
-
+		// gear is a gear iff adjacent to exactly two part numbers
+		if len(adjParts) == 2 {
+			ratio := adjParts[0].Value * adjParts[1].Value
+			ratios = append(ratios, ratio)
+		} else {
+			fmt.Fprintf(os.Stderr, "not gear @ %d: #parts %d\n", gear.Index, len(adjParts))
 		}
 	}
 
-	return partNumbers
+	return ratios
 }
 
-func hasSymbol(s string, i, j int) bool {
-	if s == "" {
-		return false
-	}
-
-	substring := s[max(0, i-1):min(len(s), j+1)]
-	return symbolRegex.Match([]byte(substring))
-}
-
-func readLines(f *os.File) []string {
-	lines := []string{}
+func readLines(f *os.File) []Line {
+	lines := []Line{}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		line := scanner.Text()
+		text := scanner.Text()
+
+		line := Line{}
+
+		// identify gears
+		for _, indices := range gearRegex.FindAllStringIndex(text, -1) {
+			line.Gears = append(line.Gears, Gear{
+				Index: indices[0],
+			})
+		}
+
+		// identify part-numbers
+		for _, indicies := range numberRegex.FindAllStringIndex(text, -1) {
+			pn := ParsePartNumber(text, indicies[0], indicies[1])
+			line.PartNumbers = append(line.PartNumbers, pn)
+		}
+
 		lines = append(lines, line)
 	}
 
 	return lines
-
 }
+
+var numberRegex = regexp.MustCompile(`\d+`)
+var gearRegex = regexp.MustCompile(`\*`)
