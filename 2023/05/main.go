@@ -125,27 +125,45 @@ func Readln(r *bufio.Reader) (string, error) {
 }
 
 type Mapping struct {
-	Label string
-	m     map[int]int
+	Label  string
+	Ranges []RangeMapping
+}
+
+type RangeMapping struct {
+	SourceRangeStart int
+	DestRangeStart   int
+	RangeLength      int
+}
+
+func (m RangeMapping) Lookup(source int) (int, bool) {
+	delta := source - m.SourceRangeStart
+	if delta < 0 || delta > m.RangeLength {
+		return 0, false
+	}
+
+	return m.DestRangeStart + delta, true
 }
 
 func NewMapping(label string) Mapping {
 	return Mapping{
 		Label: label,
-		m:     make(map[int]int),
 	}
 }
 
-func (m *Mapping) AddMapping(source, dest, count int) {
-	for i := 0; i < count; i++ {
-		m.m[source+i] = dest + i
-	}
+func (m *Mapping) AddMapping(source, dest, length int) {
+	m.Ranges = append(m.Ranges, RangeMapping{
+		SourceRangeStart: source,
+		DestRangeStart:   dest,
+		RangeLength:      length,
+	})
 }
 
 func (m Mapping) Lookup(source int) int {
-	if dest, ok := m.m[source]; ok {
-		return dest
-	} else {
-		return source
+	for _, r := range m.Ranges {
+		if dest, ok := r.Lookup(source); ok {
+			return dest
+		}
 	}
+
+	return source
 }
