@@ -13,25 +13,27 @@ type Race struct {
 	DistanceInMM uint
 }
 
-func (r Race) Solutions() []uint {
+func (r Race) TestChargeTime(x uint) bool {
+	d := (r.TimeInMS - x) * x
+	return d > r.DistanceInMM
+}
+
+func (r Race) NumberOfSolutions() uint {
 	minVelocity := r.DistanceInMM / r.TimeInMS
 
 	fmt.Fprintln(os.Stdout, "Min", minVelocity)
 
-	slns := []uint{}
+	var count uint = 0
 	for x := minVelocity; x < r.TimeInMS; x++ {
-		d := (r.TimeInMS - x) * x
-		if d <= r.DistanceInMM {
+		ok := r.TestChargeTime(x)
+		if !ok {
 			continue
 		}
 
-		slns = append(slns, x)
+		count += 1
 	}
 
-	fmt.Fprintln(os.Stderr, "Race", r)
-	fmt.Fprintln(os.Stderr, "Slns", len(slns), slns)
-
-	return slns
+	return count
 }
 
 func main() {
@@ -39,13 +41,12 @@ func main() {
 
 	var result uint = 1
 	for _, race := range races {
-		solutions := race.Solutions()
-		numSolutions := uint(len(solutions))
-		if numSolutions == 0 {
+		n := race.NumberOfSolutions()
+		if n == 0 {
 			continue
 		}
 
-		result *= numSolutions
+		result *= n
 	}
 
 	fmt.Fprintln(os.Stderr, "Races", races)
