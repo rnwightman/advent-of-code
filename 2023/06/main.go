@@ -13,10 +13,44 @@ type Race struct {
 	DistanceInMM uint
 }
 
+func (r Race) Solutions() []uint {
+	// v := velocity
+	// d := distance
+	// t := time
+	// t =
+
+	slns := []uint{}
+	for x := uint(1); x < r.TimeInMS; x++ {
+		d := (r.TimeInMS - x) * x
+		if d <= r.DistanceInMM {
+			continue
+		}
+
+		slns = append(slns, x)
+	}
+
+	fmt.Fprintln(os.Stderr, "Race", r)
+	fmt.Fprintln(os.Stderr, "Slns", len(slns), slns)
+
+	return slns
+}
+
 func main() {
 	races := ParseRaces(os.Stdin)
 
+	var result uint = 1
+	for _, race := range races {
+		solutions := race.Solutions()
+		numSolutions := uint(len(solutions))
+		if numSolutions == 0 {
+			continue
+		}
+
+		result *= numSolutions
+	}
+
 	fmt.Fprintln(os.Stderr, "Races", races)
+	fmt.Fprintln(os.Stdout, result)
 }
 
 func ParseRaces(f *os.File) []Race {
