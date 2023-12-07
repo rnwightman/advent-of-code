@@ -95,14 +95,13 @@ func ParseRaces(f *os.File) []Race {
 func ParseNumbers(s string) []uint {
 	records := strings.Fields(s)
 
-	ns := make([]uint, len(records))
-	for i := 0; i < len(records); i++ {
-		n, err := strconv.ParseUint(records[i], 10, 64)
-		if err != nil {
-			panic(err)
-		}
-		ns[i] = uint(n)
+	record := strings.Join(records, "")
+	n, err := strconv.ParseUint(record, 10, 64)
+	if err != nil {
+		panic(err)
 	}
 
-	return ns
+	return []uint{
+		uint(n),
+	}
 }
