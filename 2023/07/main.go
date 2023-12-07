@@ -49,11 +49,11 @@ func (h HandType) String() string {
 	return "unknown"
 }
 
-func (h Hand) UniqueCards() []Card {
+func uniqueCards(cards []Card) []Card {
 	inResults := make(map[Card]bool)
 	var results []Card
 
-	for _, c := range h.Cards {
+	for _, c := range cards {
 		if _, ok := inResults[c]; !ok {
 			inResults[c] = true
 			results = append(results, c)
@@ -63,12 +63,12 @@ func (h Hand) UniqueCards() []Card {
 	return results
 }
 
-func (h Hand) Type() HandType {
-	uniqueCards := h.UniqueCards()
+func handType(cards []Card) HandType {
+	uniqueCards := uniqueCards(cards)
 	counts := make([]int, len(uniqueCards))
 
 	for i, c := range uniqueCards {
-		for _, o := range h.Cards {
+		for _, o := range cards {
 			if c != o {
 				continue
 			}
@@ -102,6 +102,10 @@ func (h Hand) Type() HandType {
 	default:
 		return HighCard
 	}
+}
+
+func (h Hand) Type() HandType {
+	return handType(h.Cards)
 }
 
 func (h Hand) Strength() int {
