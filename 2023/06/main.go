@@ -14,13 +14,12 @@ type Race struct {
 }
 
 func (r Race) Solutions() []uint {
-	// v := velocity
-	// d := distance
-	// t := time
-	// t =
+	minVelocity := r.DistanceInMM / r.TimeInMS
+
+	fmt.Fprintln(os.Stdout, "Min", minVelocity)
 
 	slns := []uint{}
-	for x := uint(1); x < r.TimeInMS; x++ {
+	for x := minVelocity; x < r.TimeInMS; x++ {
 		d := (r.TimeInMS - x) * x
 		if d <= r.DistanceInMM {
 			continue
