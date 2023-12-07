@@ -105,7 +105,30 @@ func handType(cards []Card) HandType {
 }
 
 func (h Hand) Type() HandType {
-	return handType(h.Cards)
+	var result HandType
+
+	// baseline
+	result = handType(h.Cards)
+
+	uniqueCards := uniqueCards(h.Cards)
+	for _, c := range uniqueCards {
+		if c != 'J' {
+			continue
+		}
+
+		for _, s := range uniqueCards {
+			cards := make([]Card, len(h.Cards))
+			for k, orig := range h.Cards {
+				cards[k] = orig
+				if orig == 'J' {
+					cards[k] = s
+				}
+			}
+			result = max(result, handType(cards))
+		}
+	}
+
+	return result
 }
 
 func (h Hand) Strength() int {
