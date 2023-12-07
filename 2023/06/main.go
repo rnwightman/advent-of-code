@@ -19,20 +19,26 @@ func (r Race) TestChargeTime(x uint) bool {
 }
 
 func (r Race) NumberOfSolutions() uint {
+	var minSln, maxSln uint
 	minVelocity := r.DistanceInMM / r.TimeInMS
 
-	fmt.Fprintln(os.Stdout, "Min", minVelocity)
-
-	var count uint = 0
 	for x := minVelocity; x < r.TimeInMS; x++ {
 		ok := r.TestChargeTime(x)
-		if !ok {
-			continue
+		if ok {
+			minSln = x
+			break
 		}
-
-		count += 1
 	}
 
+	for x := r.TimeInMS; x > minSln; x-- {
+		ok := r.TestChargeTime(x)
+		if ok {
+			maxSln = x
+			break
+		}
+	}
+
+	count := maxSln - minSln + 1
 	return count
 }
 
