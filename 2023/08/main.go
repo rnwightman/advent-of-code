@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"slices"
 )
 
 type Directions string
@@ -24,13 +23,14 @@ func (n Node) IsExit() bool {
 	return n.Label[2] == 'Z'
 }
 
-type Map []Node
+type Map map[string]Node
 
 func (m Map) FindNode(l string) Node {
-	index := slices.IndexFunc(m, func(n Node) bool {
-		return l == n.Label
-	})
-	return m[index]
+	n, ok := m[l]
+	if !ok {
+		panic(fmt.Sprintf("Cannot locate node with label %s", l))
+	}
+	return n
 }
 
 func main() {
@@ -98,11 +98,11 @@ func ParseInput(f *os.File) (Directions, Map) {
 		panic("unexpected end of input")
 	}
 
-	var m Map
+	var m Map = make(Map, 0)
 	for scanner.Scan() {
 		line := scanner.Text()
 		n := ParseNode(line)
-		m = append(m, n)
+		m[n.Label] = n
 	}
 
 	return dirs, m
