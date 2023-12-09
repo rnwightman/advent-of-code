@@ -13,14 +13,24 @@ type Node struct {
 	Label string
 	Left  string
 	Right string
+
+	IsEntrance bool
+	IsExit     bool
 }
 
-func (n Node) IsEntrance() bool {
-	return n.Label[2] == 'A'
+func (n Node) String() string {
+	return fmt.Sprintf("{ %s (%s, %s) }", n.Label, n.Left, n.Right)
 }
 
-func (n Node) IsExit() bool {
-	return n.Label[2] == 'Z'
+func NewNode(label, left, right string) Node {
+	return Node{
+		Label: label,
+		Left:  left,
+		Right: right,
+
+		IsEntrance: label[2] == 'A',
+		IsExit:     label[2] == 'Z',
+	}
 }
 
 type Map map[string]Node
@@ -42,7 +52,7 @@ func main() {
 
 func AllAreExits(nodes []Node) bool {
 	for _, n := range nodes {
-		if !n.IsExit() {
+		if !n.IsExit {
 			return false
 		}
 	}
@@ -56,7 +66,7 @@ func Solve(m Map, dirs Directions) int {
 
 	var curNodes []Node
 	for _, node := range m {
-		if node.IsEntrance() {
+		if node.IsEntrance {
 			curNodes = append(curNodes, node)
 		}
 	}
@@ -112,9 +122,5 @@ var nodeRexex = regexp.MustCompile(`(\w+) = \((\w+), (\w+)\)`)
 
 func ParseNode(s string) Node {
 	matches := nodeRexex.FindStringSubmatch(s)
-	return Node{
-		Label: matches[1],
-		Left:  matches[2],
-		Right: matches[3],
-	}
+	return NewNode(matches[1], matches[2], matches[3])
 }
