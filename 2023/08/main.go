@@ -16,12 +16,21 @@ type Node struct {
 	Right string
 }
 
+func (n Node) IsEntrance() bool {
+	return n.Label[2] == 'A'
+}
+
+func (n Node) IsExit() bool {
+	return n.Label[2] == 'Z'
+}
+
 type Map []Node
 
-func (m Map) IndexOfLabel(l string) int {
-	return slices.IndexFunc(m, func(n Node) bool {
+func (m Map) FindNode(l string) Node {
+	index := slices.IndexFunc(m, func(n Node) bool {
 		return l == n.Label
 	})
+	return m[index]
 }
 
 func main() {
@@ -31,39 +40,50 @@ func main() {
 	fmt.Fprintln(os.Stdout, steps)
 }
 
+func AllAreExits(nodes []Node) bool {
+	for _, n := range nodes {
+		if !n.IsExit() {
+			return false
+		}
+	}
+
+	return true
+}
+
 func Solve(m Map, dirs Directions) int {
 	fmt.Fprintln(os.Stderr, "Directions", dirs)
 	fmt.Fprintf(os.Stderr, "Map contains %d nodes\n", len(m))
 
-	startIndex := m.IndexOfLabel("AAA")
-	exitIndex := m.IndexOfLabel("ZZZ")
-	if startIndex == -1 || exitIndex == -1 {
-		panic("Unable to locate start and/or exit nodes on map")
-	}
-	fmt.Fprintln(os.Stderr, "Start", startIndex, "Exit", exitIndex)
-
-	steps := 0
-	for i := startIndex; i != exitIndex; {
-		d := dirs[steps%len(dirs)]
-
-		cur := m[i]
-		var nextLabel string
-		switch d {
-		case 'L':
-			nextLabel = cur.Left
-		case 'R':
-			nextLabel = cur.Right
-		default:
-			panic("unexpected direction")
+	var curNodes []Node
+	for _, node := range m {
+		if node.IsEntrance() {
+			curNodes = append(curNodes, node)
 		}
-
-		i = m.IndexOfLabel(nextLabel)
-		steps += 1
-
-		fmt.Fprintf(os.Stderr, "Step: %d goes from %s to %s\n", steps, cur.Label, nextLabel)
 	}
+	fmt.Fprintln(os.Stderr, "Entrance", len(curNodes), curNodes)
 
-	return steps
+	var step int
+	for step = 0; !AllAreExits(curNodes); step++ {
+		d := dirs[step%len(dirs)]
+		fmt.Fprintf(os.Stderr, "S=%d; D=%c;\t@=%v\n", step, d, curNodes)
+
+		var nextLabel string
+		for i, n := range curNodes {
+			switch d {
+			case 'L':
+				nextLabel = n.Left
+			case 'R':
+				nextLabel = n.Right
+
+			default:
+				panic("unexpected direction")
+			}
+			curNodes[i] = m.FindNode(nextLabel)
+		}
+	}
+	fmt.Fprintln(os.Stderr, "Exit", len(curNodes), curNodes)
+
+	return step
 }
 
 func ParseInput(f *os.File) (Directions, Map) {
