@@ -7,52 +7,37 @@ import (
 	"regexp"
 )
 
+const (
+	Entrance = 'A'
+	Exit     = 'Z'
+)
+
 type Directions string
 
 type Node struct {
 	Label string
-	Left  string
-	Right string
 
-	IsEntrance bool
-	IsExit     bool
+	Entrance bool
+	Exit     bool
+
+	Left  *Node
+	Right *Node
 }
 
 func (n Node) String() string {
-	return fmt.Sprintf("{ %s (%s, %s) }", n.Label, n.Left, n.Right)
-}
-
-func NewNode(label, left, right string) Node {
-	return Node{
-		Label: label,
-		Left:  left,
-		Right: right,
-
-		IsEntrance: label[2] == 'A',
-		IsExit:     label[2] == 'Z',
-	}
-}
-
-type Map map[string]Node
-
-func (m Map) FindNode(l string) Node {
-	n, ok := m[l]
-	if !ok {
-		panic(fmt.Sprintf("Cannot locate node with label %s", l))
-	}
-	return n
+	return n.Label
 }
 
 func main() {
-	dirs, m := ParseInput(os.Stdin)
-	steps := Solve(m, dirs)
+	dirs, startNodes := ParseInput(os.Stdin)
+	steps := Solve(startNodes, dirs)
 
 	fmt.Fprintln(os.Stdout, steps)
 }
 
-func AllAreExits(nodes []Node) bool {
+func AllAreExits(nodes []*Node) bool {
 	for _, n := range nodes {
-		if !n.IsExit {
+		if !n.Exit {
 			return false
 		}
 	}
@@ -60,16 +45,8 @@ func AllAreExits(nodes []Node) bool {
 	return true
 }
 
-func Solve(m Map, dirs Directions) int {
+func Solve(curNodes []*Node, dirs Directions) int {
 	fmt.Fprintln(os.Stderr, "Directions", dirs)
-	fmt.Fprintf(os.Stderr, "Map contains %d nodes\n", len(m))
-
-	var curNodes []Node
-	for _, node := range m {
-		if node.IsEntrance {
-			curNodes = append(curNodes, node)
-		}
-	}
 	fmt.Fprintln(os.Stderr, "Entrance", len(curNodes), curNodes)
 
 	var step int
@@ -77,18 +54,18 @@ func Solve(m Map, dirs Directions) int {
 		d := dirs[step%len(dirs)]
 		fmt.Fprintf(os.Stderr, "S=%d; D=%c;\t@=%v\n", step, d, curNodes)
 
-		var nextLabel string
+		var next *Node
 		for i, n := range curNodes {
 			switch d {
 			case 'L':
-				nextLabel = n.Left
+				next = n.Left
 			case 'R':
-				nextLabel = n.Right
+				next = n.Right
 
 			default:
 				panic("unexpected direction")
 			}
-			curNodes[i] = m.FindNode(nextLabel)
+			curNodes[i] = next
 		}
 	}
 	fmt.Fprintln(os.Stderr, "Exit", len(curNodes), curNodes)
@@ -96,7 +73,7 @@ func Solve(m Map, dirs Directions) int {
 	return step
 }
 
-func ParseInput(f *os.File) (Directions, Map) {
+func ParseInput(f *os.File) (Directions, []*Node) {
 	scanner := bufio.NewScanner(f)
 
 	if !scanner.Scan() {
@@ -108,19 +85,44 @@ func ParseInput(f *os.File) (Directions, Map) {
 		panic("unexpected end of input")
 	}
 
-	var m Map = make(Map, 0)
+	records := make([][3]string, 0)
+	nodesByLabel := make(map[string]*Node)
+
 	for scanner.Scan() {
 		line := scanner.Text()
-		n := ParseNode(line)
-		m[n.Label] = n
+
+		label, left, right := ParseRecord(line)
+
+		records = append(records, [3]string{
+			label, left, right,
+		})
+
+		nodesByLabel[label] = &Node{
+			Label:    label,
+			Entrance: label[2] == Entrance,
+			Exit:     label[2] == Exit,
+		}
 	}
 
-	return dirs, m
+	for _, r := range records {
+		node, _ := nodesByLabel[r[0]]
+		node.Left, _ = nodesByLabel[r[1]]
+		node.Right, _ = nodesByLabel[r[2]]
+	}
+
+	entranceNodes := make([]*Node, 0)
+	for _, n := range nodesByLabel {
+		if n.Entrance {
+			entranceNodes = append(entranceNodes, n)
+		}
+	}
+
+	return dirs, entranceNodes
 }
 
 var nodeRexex = regexp.MustCompile(`(\w+) = \((\w+), (\w+)\)`)
 
-func ParseNode(s string) Node {
+func ParseRecord(s string) (label, left, right string) {
 	matches := nodeRexex.FindStringSubmatch(s)
-	return NewNode(matches[1], matches[2], matches[3])
+	return matches[1], matches[2], matches[3]
 }
