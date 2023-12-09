@@ -40,11 +40,11 @@ func extrapolateValue(r []int) int {
 		ok = ok && (d == 0)
 	}
 
-	last := r[len(r)-1]
+	first := r[0]
 	if ok {
-		return last
+		return first
 	} else {
-		return last + extrapolateValue(differences)
+		return first - extrapolateValue(differences)
 	}
 }
 
