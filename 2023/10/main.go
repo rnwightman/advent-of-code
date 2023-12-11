@@ -161,18 +161,15 @@ func (b Board) NextTile(p, c Tile) Tile {
 	panic("unable to find nex tile")
 }
 
-func (b Board) Explore(p, c Tile) (int, bool) {
+func (b Board) Explore(p, c Tile) []Tile {
 	if c.Type == StartingPos {
-		return 1, true
+		return []Tile{c}
 	}
 
 	n := b.NextTile(p, c)
-	s, ok := b.Explore(c, n)
-	if !ok {
-		return 0, false
-	}
+	tiles := b.Explore(c, n)
 
-	return s + 1, true
+	return append(tiles, c)
 }
 
 func main() {
@@ -191,14 +188,11 @@ func main() {
 		panic("unexpected number of candidate loops")
 	}
 
-	steps, ok := board.Explore(start, adjToStart[0])
-	if !ok {
-		panic("unable to explore the loop")
-	}
+	loopTiles := board.Explore(start, adjToStart[0])
+	length := len(loopTiles)
+	fmt.Fprintln(os.Stderr, "Loop", length, loopTiles)
 
-	fmt.Fprintln(os.Stderr, "Length", steps)
-
-	dist := steps / 2
+	dist := length / 2
 	fmt.Fprintln(os.Stdout, dist)
 }
 
