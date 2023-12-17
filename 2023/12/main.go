@@ -45,19 +45,23 @@ func ToDamagedGroups(conds []Condition) []int64 {
 	return groups
 }
 
-func (r Record) Matches(conds []Condition) bool {
+func IsSolution(conds []Condition, damagedGroups []int64) bool {
 	groups := ToDamagedGroups(conds)
-	if len(groups) != len(r.DamagedGroups) {
+	if len(groups) != len(damagedGroups) {
 		return false
 	}
 
 	for i := 0; i < len(groups); i++ {
-		if groups[i] != r.DamagedGroups[i] {
+		if groups[i] != damagedGroups[i] {
 			return false
 		}
 	}
 
 	return true
+}
+
+func (r Record) Matches(conds []Condition) bool {
+	return IsSolution(conds, r.DamagedGroups)
 }
 
 func Expand(conds []Condition) [][]Condition {
@@ -139,7 +143,16 @@ func (r Record) Solutions() [][]Condition {
 func main() {
 	sum := 0
 
-	records := parseRecords(os.Stdin)
+	var numberOfCopies int8 = 1
+	if len(os.Args) > 1 {
+		n, err := strconv.ParseInt(os.Args[1], 10, 8)
+		if err != nil {
+			panic(err)
+		}
+		numberOfCopies = int8(n)
+	}
+
+	records := parseRecords(os.Stdin, numberOfCopies)
 	for _, r := range records {
 		fmt.Fprintln(os.Stderr, r)
 		solutions := r.Solutions()
@@ -159,9 +172,7 @@ func main() {
 	fmt.Fprintln(os.Stdout, sum)
 }
 
-const NumberOfCopiesOfInput = 1
-
-func parseRecords(f *os.File) []Record {
+func parseRecords(f *os.File, numCopies int8) []Record {
 	rs := make([]Record, 0)
 
 	scanner := bufio.NewScanner(f)
@@ -193,7 +204,7 @@ func parseRecords(f *os.File) []Record {
 		}
 
 		// Expand input
-		for i := 1; i < NumberOfCopiesOfInput; i++ {
+		for i := int8(1); i < numCopies; i++ {
 			r.Conditions = append(r.Conditions, Unknown)
 			r.Conditions = append(r.Conditions, conds...)
 
