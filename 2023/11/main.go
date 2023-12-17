@@ -41,7 +41,7 @@ func (g Galaxy) String() string {
 
 func main() {
 	galaxies := readInput(os.Stdin)
-	// TODO expand universe
+	galaxies = expandUniverse(galaxies)
 	distances := calculateDistances(galaxies)
 
 	fmt.Fprintln(os.Stderr, "Number of distances", len(distances))
@@ -69,6 +69,61 @@ func calculateDistances(galaxies []Galaxy) []int {
 	}
 
 	return ds
+}
+
+func expandUniverse(galaxies []Galaxy) []Galaxy {
+	var maxRow, maxCol int
+	populatedRows := make(map[int]bool)
+	populatedCols := make(map[int]bool)
+
+	// Analayze galaxies
+	for _, g := range galaxies {
+		row := g.Position.Row
+		col := g.Position.Col
+
+		populatedRows[row] = true
+		populatedCols[col] = true
+
+		if row > maxRow {
+			maxRow = row
+		}
+
+		if col > maxCol {
+			maxCol = col
+		}
+	}
+
+	// Expand
+	expandedGalaxies := make([]Galaxy, 0, len(galaxies))
+	for _, g := range galaxies {
+		curPos := g.Position
+		expPos := curPos
+
+		for r := 1; r < curPos.Row; r++ {
+			if _, ok := populatedRows[r]; ok {
+				continue
+			}
+
+			expPos.Row += 1
+		}
+		for c := 1; c < curPos.Col; c++ {
+			if _, ok := populatedCols[c]; ok {
+				continue
+			}
+
+			expPos.Col += 1
+		}
+
+		expG := Galaxy{
+			ID:       g.ID,
+			Position: expPos,
+		}
+		expandedGalaxies = append(expandedGalaxies, expG)
+
+		fmt.Fprintln(os.Stderr, "Expand\t", g, "\tTo\t", expG)
+	}
+
+	return expandedGalaxies
 }
 
 func readInput(f *os.File) []Galaxy {
