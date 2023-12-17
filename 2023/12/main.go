@@ -25,123 +25,95 @@ type Record struct {
 	DamagedGroups []int64
 }
 
-func ToDamagedGroups(conds []Condition) []int64 {
-	groups := make([]int64, 0)
-
-	var count int64 = 0
-	for _, c := range conds {
-		if c == Damaged {
-			count += 1
-		} else if count > 0 {
-			groups = append(groups, count)
-			count = 0
-		}
-	}
-
-	if count > 0 {
-		groups = append(groups, count)
-	}
-
-	return groups
-}
-
-func IsSolution(conds []Condition, damagedGroups []int64) bool {
-	groups := ToDamagedGroups(conds)
-	if len(groups) != len(damagedGroups) {
-		return false
-	}
-
-	for i := 0; i < len(groups); i++ {
-		if groups[i] != damagedGroups[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (r Record) Matches(conds []Condition) bool {
-	return IsSolution(conds, r.DamagedGroups)
-}
-
-func Expand(conds []Condition) [][]Condition {
-	if len(conds) == 0 {
-		return [][]Condition{}
-	}
-
-	expanded := make([][]Condition, 0)
-	prefix := make([]Condition, 0)
-	for i, c := range conds {
-		if c != Unknown {
-			prefix = append(prefix, c)
-			continue
-		}
-
-		remainder := conds[i+1:]
-		expRemainder := Expand(remainder)
-
-		if len(expRemainder) == 0 {
-			// good
-			expandedGood := make([]Condition, 0, len(conds))
-			expandedGood = append(expandedGood, prefix...)
-			expandedGood = append(expandedGood, Operational)
-
-			// bad
-			expandedBad := make([]Condition, 0, len(conds))
-			expandedBad = append(expandedBad, prefix...)
-			expandedBad = append(expandedBad, Damaged)
-
-			expanded = append(expanded, expandedGood)
-			expanded = append(expanded, expandedBad)
-		}
-
-		for _, rem := range expRemainder {
-			// good
-			expandedGood := make([]Condition, 0, len(conds))
-			expandedGood = append(expandedGood, prefix...)
-			expandedGood = append(expandedGood, Operational)
-			expandedGood = append(expandedGood, rem...)
-
-			// bad
-			expandedBad := make([]Condition, 0, len(conds))
-			expandedBad = append(expandedBad, prefix...)
-			expandedBad = append(expandedBad, Damaged)
-			expandedBad = append(expandedBad, rem...)
-
-			expanded = append(expanded, expandedGood)
-			expanded = append(expanded, expandedBad)
-		}
-		break
-	}
-
-	if len(expanded) == 0 {
-		expanded = append(expanded, prefix)
-	}
-
-	return expanded
-}
-
-func (r Record) PossibleArrangements() [][]Condition {
-	return Expand(r.Conditions)
-}
-
-func Solutions(conds []Condition, damagedGroups []int64) [][]Condition {
+func Solutions(conds []Condition, damagedGroups []int64, damagedCount int64) ([][]Condition, bool) {
 	solutions := make([][]Condition, 0)
 
-	allExpansions := Expand(conds)
-	for _, exp := range allExpansions {
-		if ok := IsSolution(exp, damagedGroups); !ok {
-			continue
-		}
-
-		solutions = append(solutions, exp)
+	// Evertying is done
+	if len(conds) == 0 && len(damagedGroups) == 0 && damagedCount == 0 {
+		return solutions, true
 	}
 
-	return solutions
+	// No more input and one group of damaged
+	if len(conds) == 0 {
+		return solutions, len(damagedGroups) == 1 && damagedCount == damagedGroups[0]
+	}
+
+	var targetDamaged int64 = 0
+	if len(damagedGroups) > 0 {
+		targetDamaged = damagedGroups[0]
+	}
+
+	// Too many damaged no further solutions
+	if damagedCount > targetDamaged {
+		return solutions, false
+	}
+
+	c := conds[0]
+
+	if c == Unknown {
+		var altSols [][]Condition
+		altConds := make([]Condition, 0, len(conds))
+		altConds = append(altConds, conds...)
+
+		// Operational Reality
+		altConds[0] = Operational
+		altSols, ok := Solutions(altConds, damagedGroups, damagedCount)
+		if ok {
+			solutions = append(solutions, altSols...)
+		}
+
+		// Damaged Reality
+		altConds[0] = Damaged
+		altSols, ok = Solutions(altConds, damagedGroups, damagedCount)
+		if ok {
+			solutions = append(solutions, altSols...)
+		}
+
+		return solutions, len(solutions) > 0
+	}
+
+	if c == Operational {
+		if damagedCount > 0 {
+			if damagedCount != targetDamaged {
+				return [][]Condition{}, false
+			} else {
+				damagedGroups = damagedGroups[1:]
+				damagedCount = 0
+			}
+		}
+	}
+	if c == Damaged {
+		damagedCount += 1
+	}
+
+	remSolutions, ok := Solutions(conds[1:], damagedGroups, damagedCount)
+	if !ok {
+		return solutions, false
+	}
+
+	for _, remSol := range remSolutions {
+		solution := make([]Condition, 0, len(conds))
+		solution = append(solution, c)
+		solution = append(solution, remSol...)
+
+		solutions = append(solutions, solution)
+	}
+
+	if len(solutions) == 0 {
+		solution := []Condition{c}
+		solutions = append(solutions, solution)
+	}
+
+	return solutions, true
 }
 
 func (r Record) Solutions() [][]Condition {
-	return Solutions(r.Conditions, r.DamagedGroups)
+	sols, ok := Solutions(r.Conditions, r.DamagedGroups, 0)
+	if !ok {
+		panic("unable to find solution")
+	}
+
+	return sols
 }
 
 func main() {
@@ -157,15 +129,13 @@ func main() {
 	}
 
 	records := parseRecords(os.Stdin, numberOfCopies)
-	for _, r := range records {
+	for i, r := range records {
 		fmt.Fprintln(os.Stderr, r)
 		solutions := r.Solutions()
 
-		for i, sol := range solutions {
-			if i == 0 {
-				fmt.Fprint(os.Stderr, len(solutions))
-			}
+		fmt.Fprintf(os.Stdout, "Row %d/%d ->\t%d\n", i+1, len(records), len(solutions))
 
+		for _, sol := range solutions {
 			fmt.Fprintln(os.Stderr, "\t", sol)
 			sum += 1
 		}
