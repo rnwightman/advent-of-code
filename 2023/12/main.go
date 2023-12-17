@@ -121,24 +121,36 @@ func (r Record) PossibleArrangements() [][]Condition {
 	return Expand(r.Conditions)
 }
 
+func (r Record) Solutions() [][]Condition {
+	solutions := make([][]Condition, 0)
+
+	allExpansions := r.PossibleArrangements()
+	for _, exp := range allExpansions {
+		if ok := r.Matches(exp); !ok {
+			continue
+		}
+
+		solutions = append(solutions, exp)
+	}
+
+	return solutions
+}
+
 func main() {
 	sum := 0
 
 	records := parseRecords(os.Stdin)
 	for _, r := range records {
 		fmt.Fprintln(os.Stderr, r)
+		solutions := r.Solutions()
 
-		arrangements := r.PossibleArrangements()
-		for _, a := range arrangements {
-			if len(a) != len(r.Conditions) {
-				panic("Arrangement has different length than record")
+		for i, sol := range solutions {
+			if i == 0 {
+				fmt.Fprint(os.Stderr, len(solutions))
 			}
-			ok := r.Matches(a)
 
-			if ok {
-				fmt.Fprintln(os.Stderr, "\t", a)
-				sum += 1
-			}
+			fmt.Fprintln(os.Stderr, "\t", sol)
+			sum += 1
 		}
 
 		fmt.Fprintln(os.Stderr)
