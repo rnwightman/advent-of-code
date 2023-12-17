@@ -125,12 +125,12 @@ func (r Record) PossibleArrangements() [][]Condition {
 	return Expand(r.Conditions)
 }
 
-func (r Record) Solutions() [][]Condition {
+func Solutions(conds []Condition, damagedGroups []int64) [][]Condition {
 	solutions := make([][]Condition, 0)
 
-	allExpansions := r.PossibleArrangements()
+	allExpansions := Expand(conds)
 	for _, exp := range allExpansions {
-		if ok := r.Matches(exp); !ok {
+		if ok := IsSolution(exp, damagedGroups); !ok {
 			continue
 		}
 
@@ -138,6 +138,10 @@ func (r Record) Solutions() [][]Condition {
 	}
 
 	return solutions
+}
+
+func (r Record) Solutions() [][]Condition {
+	return Solutions(r.Conditions, r.DamagedGroups)
 }
 
 func main() {
