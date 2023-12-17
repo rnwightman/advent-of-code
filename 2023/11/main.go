@@ -71,6 +71,8 @@ func calculateDistances(galaxies []Galaxy) []int {
 	return ds
 }
 
+const ExpansionSize int = 1_000_000
+
 func expandUniverse(galaxies []Galaxy) []Galaxy {
 	var maxRow, maxCol int
 	populatedRows := make(map[int]bool)
@@ -104,14 +106,14 @@ func expandUniverse(galaxies []Galaxy) []Galaxy {
 				continue
 			}
 
-			expPos.Row += 1
+			expPos.Row += (ExpansionSize - 1)
 		}
 		for c := 1; c < curPos.Col; c++ {
 			if _, ok := populatedCols[c]; ok {
 				continue
 			}
 
-			expPos.Col += 1
+			expPos.Col += (ExpansionSize - 1)
 		}
 
 		expG := Galaxy{
