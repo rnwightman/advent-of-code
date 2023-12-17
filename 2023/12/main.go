@@ -147,6 +147,8 @@ func main() {
 	fmt.Fprintln(os.Stdout, sum)
 }
 
+const NumberOfCopiesOfInput = 1
+
 func parseRecords(f *os.File) []Record {
 	rs := make([]Record, 0)
 
@@ -176,6 +178,14 @@ func parseRecords(f *os.File) []Record {
 		r := Record{
 			Conditions:    conds,
 			DamagedGroups: groups,
+		}
+
+		// Expand input
+		for i := 1; i < NumberOfCopiesOfInput; i++ {
+			r.Conditions = append(r.Conditions, Unknown)
+			r.Conditions = append(r.Conditions, conds...)
+
+			r.DamagedGroups = append(r.DamagedGroups, groups...)
 		}
 
 		rs = append(rs, r)
