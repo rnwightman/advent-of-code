@@ -4,8 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"runtime"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 )
 
 type Condition rune
@@ -25,7 +29,7 @@ type Record struct {
 	DamagedGroups []int64
 }
 
-func Solutions(conds []Condition, damagedGroups []int64, damagedCount int64) int64 {
+func Solutions(conds []Condition, damagedGroups []int64, damagedCount int64) uint64 {
 	// Evertying is done
 	if len(conds) == 0 && len(damagedGroups) == 0 && damagedCount == 0 {
 		return 1
@@ -84,13 +88,11 @@ func Solutions(conds []Condition, damagedGroups []int64, damagedCount int64) int
 	return Solutions(conds[1:], damagedGroups, damagedCount)
 }
 
-func (r Record) Solutions() int64 {
+func (r Record) Solutions() uint64 {
 	return Solutions(r.Conditions, r.DamagedGroups, 0)
 }
 
 func main() {
-	var sum int64 = 0
-
 	var numberOfCopies int8 = 1
 	if len(os.Args) > 1 {
 		n, err := strconv.ParseInt(os.Args[1], 10, 8)
@@ -101,11 +103,51 @@ func main() {
 	}
 
 	records := parseRecords(os.Stdin, numberOfCopies)
-	for i, r := range records {
-		solutions := r.Solutions()
+	solutions := make([]uint64, len(records))
 
-		fmt.Fprintf(os.Stdout, "Row %d/%d ->\t%d\n", i+1, len(records), solutions)
-		sum += solutions
+	numWorkers := runtime.NumCPU()
+	progress := sync.Map{}
+
+	var wg sync.WaitGroup
+	wg.Add(len(records))
+
+	for wId := 0; wId < numWorkers; wId++ {
+		go func(wId int) {
+			for i, r := range records {
+				if i%numWorkers != wId {
+					continue
+				}
+
+				numSolutions := r.Solutions()
+				solutions[i] = numSolutions
+				wg.Done()
+
+				percentComplete := (100 * i) / len(records)
+				progress.Store(wId+1, percentComplete)
+
+				// print progress
+				progValues := make([]int, 0, numWorkers)
+				progSum := 0
+				progress.Range(func(_, v interface{}) bool {
+					if percent, ok := v.(int); ok {
+						progValues = append(progValues, percent)
+						progSum += percent
+					}
+					return true
+				})
+				slices.Sort(progValues)
+				fmt.Fprintln(os.Stderr, time.Now().Format(time.Stamp), "\t", progSum/numWorkers, "\t", progValues)
+			}
+
+			progress.Store(wId+1, 100)
+		}(wId)
+	}
+
+	wg.Wait()
+
+	var sum uint64 = 0
+	for _, n := range solutions {
+		sum += n
 	}
 
 	fmt.Fprintln(os.Stdout, sum)
