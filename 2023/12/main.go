@@ -29,18 +29,35 @@ type Record struct {
 	DamagedGroups []int64
 }
 
+var cache = sync.Map{}
+
+func HasVisited(key string) (uint64, bool) {
+	if answer, ok := cache.Load(key); ok {
+		return answer.(uint64), true
+	}
+
+	return 0, false
+}
+
+func Visit(key string, answer uint64) uint64 {
+	cache.Store(key, answer)
+	return answer
+}
+
 func Solutions(conds []Condition, damagedGroups []int64, damagedCount int64) uint64 {
 	// Evertying is done
 	if len(conds) == 0 && len(damagedGroups) == 0 && damagedCount == 0 {
 		return 1
 	}
 
+	key := fmt.Sprintf("%v::%v::%d", conds, damagedGroups, damagedCount)
+
 	// No more input and one group of damaged
 	if len(conds) == 0 {
 		if len(damagedGroups) == 1 && damagedCount == damagedGroups[0] {
-			return 1
+			return Visit(key, 1)
 		} else {
-			return 0
+			return Visit(key, 0)
 		}
 	}
 
@@ -51,7 +68,11 @@ func Solutions(conds []Condition, damagedGroups []int64, damagedCount int64) uin
 
 	// Too many damaged no further solutions
 	if damagedCount > targetDamaged {
-		return 0
+		return Visit(key, 0)
+	}
+
+	if answer, ok := HasVisited(key); ok {
+		return answer
 	}
 
 	c := conds[0]
@@ -68,13 +89,14 @@ func Solutions(conds []Condition, damagedGroups []int64, damagedCount int64) uin
 		altConds[0] = Damaged
 		altCount := Solutions(altConds, damagedGroups, damagedCount)
 
-		return opCount + altCount
+		answer := opCount + altCount
+		return Visit(key, answer)
 	}
 
 	if c == Operational {
 		if damagedCount > 0 {
 			if damagedCount != targetDamaged {
-				return 0
+				return Visit(key, 0)
 			} else {
 				damagedGroups = damagedGroups[1:]
 				damagedCount = 0
