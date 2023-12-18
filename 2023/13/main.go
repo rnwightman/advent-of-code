@@ -9,14 +9,23 @@ import (
 type Pattern []string
 
 func main() {
+	var sum uint64
+
 	patterns := parseInput(os.Stdin)
 	for i, p := range patterns {
-		fmt.Fprintln(os.Stderr, "Pattern", i+1)
+		answer := analyze(p)
+		fmt.Fprintln(os.Stderr, "Pattern", i+1, "=", answer)
 		for _, l := range p {
 			fmt.Fprintln(os.Stderr, l)
 		}
 		fmt.Fprintln(os.Stderr)
 	}
+
+	fmt.Fprintln(os.Stdout, "Answer:", sum)
+}
+
+func analyze(p Pattern) uint64 {
+	return 0
 }
 
 func parseInput(f *os.File) []Pattern {
