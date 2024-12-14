@@ -59,4 +59,20 @@ func main() {
 	}
 	fmt.Println("distance:", distances)
 	fmt.Println("total distance:", totalDistance)
+
+	// calculate similarity
+	locationFrequency := make(map[int]int)
+	for _, location := range lists[1] {
+		locationFrequency[location] += 1
+	}
+
+	totalSimilarityScore := 0
+	similarityScores := make([]int, 0, len(lists[0]))
+	for _, location := range lists[0] {
+		score := location * locationFrequency[location]
+		totalSimilarityScore += score
+		similarityScores = append(similarityScores, score)
+	}
+	fmt.Println("scores:", similarityScores)
+	fmt.Println("similarity:", totalSimilarityScore)
 }
