@@ -36,6 +36,31 @@ func (r Report) IsSafe() bool {
 	return true
 }
 
+func (r Report) GenerateDampendReports() []Report {
+	variants := make([]Report, 0)
+	for i := range r {
+		variant := slices.Delete(slices.Clone(r), i, i+1)
+		variants = append(variants, variant)
+	}
+
+	return variants
+}
+
+func (r Report) IsSafeWithDampener() bool {
+	variants := r.GenerateDampendReports()
+	// fmt.Println("variants of", r, variants)
+	for _, variant := range variants {
+		ok := variant.IsSafe()
+		// fmt.Println("variant", variant, "ok?", ok)
+
+		if ok {
+			return true
+		}
+	}
+
+	return false
+}
+
 func main() {
 	reports := ReadReports()
 
@@ -43,7 +68,8 @@ func main() {
 	safeReports := make([]Report, 0)
 	for _, report := range reports {
 		ok := report.IsSafe()
-		if ok {
+
+		if ok || report.IsSafeWithDampener() {
 			safeReports = append(safeReports, report)
 		}
 	}
