@@ -19,12 +19,14 @@ func (i Instruction) Result() int {
 }
 
 func ParseInstructions(r *os.File) []Instruction {
+	enabled := true
 	instructions := make([]Instruction, 0)
 
 	s := bufio.NewScanner(r)
 	for s.Scan() {
 		line := s.Text()
-		instructionsInLine := parseInstructions(line)
+		isEnabled, instructionsInLine := parseInstructions(enabled, line)
+		enabled = isEnabled
 
 		instructions = append(instructions, instructionsInLine...)
 	}
@@ -32,32 +34,38 @@ func ParseInstructions(r *os.File) []Instruction {
 	return instructions
 }
 
-var instructionRegex *regexp.Regexp = regexp.MustCompile(`mul\((\d+)\,(\d+)\)`)
+var instructionRegex *regexp.Regexp = regexp.MustCompile(`mul\((\d+),(\d+)\)|do\(\)|don\'t\(\)`)
 
-func parseInstructions(input string) []Instruction {
+func parseInstructions(enabled bool, input string) (bool, []Instruction) {
 	instructions := make([]Instruction, 0)
 
 	matches := instructionRegex.FindAllStringSubmatch(input, -1)
 	for _, match := range matches {
 		fmt.Println("values in", match)
 
-		x, err := strconv.Atoi(match[1])
-		if err != nil {
-			log.Fatal("could not parse X from", match, err)
-		}
-		y, err := strconv.Atoi(match[2])
-		if err != nil {
-			log.Fatal("could not parse Y from", match, err)
-		}
+		if match[0] == "don't()" {
+			enabled = false
+		} else if match[0] == "do()" {
+			enabled = true
+		} else if enabled {
+			x, err := strconv.Atoi(match[1])
+			if err != nil {
+				log.Fatal("could not parse X from", match, err)
+			}
+			y, err := strconv.Atoi(match[2])
+			if err != nil {
+				log.Fatal("could not parse Y from", match, err)
+			}
 
-		instruction := Instruction{
-			X: x,
-			Y: y,
+			instruction := Instruction{
+				X: x,
+				Y: y,
+			}
+			instructions = append(instructions, instruction)
 		}
-		instructions = append(instructions, instruction)
 	}
 
-	return instructions
+	return enabled, instructions
 }
 
 func main() {
